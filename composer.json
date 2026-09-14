@@ -1,0 +1,31 @@
+{
+  "name": "ephraitech/ci4-error-logger",
+  "description": "Reusable DB-backed error logging for CodeIgniter 4 applications, covering application, framework, and database errors.",
+  "type": "library",
+  "require": {
+    "php": "^8.1"
+  },
+  "require-dev": {
+    "codeigniter4/framework": "^4.4"
+  },
+  "license": "proprietary",
+  "keywords": [
+    "codeigniter4",
+    "ci4",
+    "error-logging",
+    "ephraitech"
+  ],
+  "autoload": {
+    "psr-4": {
+      "Ephraitech\\ErrorLogger\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Ephraitech Unified Solutions",
+      "homepage": "https://ephraitech.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
