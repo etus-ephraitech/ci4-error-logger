@@ -3,18 +3,13 @@
 namespace Ephraitech\ErrorLogger\Handlers;
 
 use CodeIgniter\Debug\Exceptions as CIExceptions;
-use CodeIgniter\HTTP\Exceptions\HTTPExceptionInterface;
+use CodeIgniter\Exceptions\HTTPExceptionInterface;
 use Ephraitech\ErrorLogger\Libraries\ErrorLogger;
+use ErrorException;
 use Throwable;
 
 class ExceptionHandler extends CIExceptions
 {
-    /**
-     * Intercepts every uncaught exception CI4 would otherwise handle.
-     * Logs it (unless it's an expected 4xx HTTP exception — those are
-     * normal request outcomes, already handled per-endpoint), then hands
-     * off to CI4's normal behavior (error page / API error response).
-     */
     public function exceptionHandler(Throwable $exception): void
     {
         if (! $this->shouldSkip($exception)) {
@@ -24,11 +19,6 @@ class ExceptionHandler extends CIExceptions
         parent::exceptionHandler($exception);
     }
 
-    /**
-     * Intercepts native PHP errors/warnings/notices that CI4 converts
-     * via set_error_handler (e.g. undefined array key, division by zero
-     * warnings, trigger_error() calls).
-     */
     public function errorHandler(int $severity, string $message, ?string $file = null, ?int $line = null)
     {
         $this->logPhpError($severity, $message, $file, $line);
@@ -36,12 +26,6 @@ class ExceptionHandler extends CIExceptions
         return parent::errorHandler($severity, $message, $file, $line);
     }
 
-    /**
-     * Catches fatal errors that bypass errorHandler/exceptionHandler
-     * entirely (E_ERROR, E_PARSE, E_COMPILE_ERROR, E_CORE_ERROR), since
-     * PHP terminates the script immediately for these and only the
-     * shutdown function still runs.
-     */
     public function shutdownHandler(): void
     {
         $error = error_get_last();
@@ -93,10 +77,6 @@ class ExceptionHandler extends CIExceptions
         };
     }
 
-    /**
-     * Rough classification by exception namespace. Not perfect, but
-     * sufficient for the three categories that matter here.
-     */
     protected function categorize(Throwable $exception): string
     {
         $class = get_class($exception);
@@ -112,17 +92,19 @@ class ExceptionHandler extends CIExceptions
         return 'application';
     }
 
-    /**
-     * 4xx HTTP exceptions (404 Not Found, validation failures routed as
-     * exceptions, etc.) are expected outcomes already handled at the
-     * endpoint level — not "errors" worth persisting.
-     */
     protected function shouldSkip(Throwable $exception): bool
     {
         if ($exception instanceof HTTPExceptionInterface) {
             $code = $exception->getCode();
 
             return $code >= 400 && $code < 500;
+        }
+
+        // Already logged in errorHandler() before CI4 escalates the
+        // warning/notice into a thrown ErrorException for display —
+        // skip here to avoid logging the same underlying event twice.
+        if ($exception instanceof ErrorException) {
+            return true;
         }
 
         return false;
